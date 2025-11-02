@@ -432,6 +432,11 @@ const translations: Record<Language, Record<string, string>> = {
     'login.error': '密码错误，请重试',
     'login.button': '登录',
     'login.back': '返回首页',
+
+    // Subscription Notification
+    'notification.message1': '已联系团队长参加外汇交易员培训',
+    'notification.message2': '已成为试用会员',
+    'notification.time': '刚刚',
   },
   en: {
     // Brand Name
@@ -851,6 +856,11 @@ const translations: Record<Language, Record<string, string>> = {
     'login.error': 'Incorrect password, please try again',
     'login.button': 'Login',
     'login.back': 'Back to Home',
+
+    // Subscription Notification
+    'notification.message1': 'Contacted team leader to join forex trader training',
+    'notification.message2': 'Became a trial member',
+    'notification.time': 'Just now',
   }
 };
 

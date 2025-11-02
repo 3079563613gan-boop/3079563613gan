@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Notification {
   id: string;
   email: string;
-  message: string;
+  messageKey: string;
 }
 
 // 生成随机Gmail邮箱（中间部分用*替代）
@@ -22,24 +23,25 @@ function generateRandomEmail(): string {
   return `${visibleStart}***${visibleEnd}@gmail.com`;
 }
 
-// 随机消息内容
-function getRandomMessage(): string {
-  const messages = [
-    '已联系团队长参加外汇交易员培训',
-    '已成为试用会员'
+// 随机消息内容 - 返回翻译key
+function getRandomMessageKey(): string {
+  const messageKeys = [
+    'notification.message1',
+    'notification.message2'
   ];
-  return messages[Math.floor(Math.random() * messages.length)];
+  return messageKeys[Math.floor(Math.random() * messageKeys.length)];
 }
 
 export default function SubscriptionNotification() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const showNotification = () => {
       const newNotification: Notification = {
         id: Date.now().toString(),
         email: generateRandomEmail(),
-        message: getRandomMessage(),
+        messageKey: getRandomMessageKey(),
       };
 
       setNotifications(prev => [...prev, newNotification]);
@@ -95,10 +97,10 @@ export default function SubscriptionNotification() {
                     {notification.email}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {notification.message}
+                    {t(notification.messageKey)}
                   </p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    刚刚
+                    {t('notification.time')}
                   </p>
                 </div>
               </div>

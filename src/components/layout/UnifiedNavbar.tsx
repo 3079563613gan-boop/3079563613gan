@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import BrandName from '@/components/custom/BrandName';
 
 export default function UnifiedNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -81,8 +82,7 @@ export default function UnifiedNavbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center group">
-            <span className="text-2xl font-black text-black dark:text-white">FX</span>
-            <span className="text-2xl font-normal text-gray-600 dark:text-gray-400 ml-1">Killer</span>
+            <span className="text-2xl"><BrandName /></span>
           </Link>
 
           {/* Desktop Navigation */}
