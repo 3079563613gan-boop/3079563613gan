@@ -59,22 +59,19 @@ export default function LiveTradingChart({ symbol, interval, config }: LiveTradi
           },
         });
 
-        // SuperTrend
+        // ATR (Average True Range)
         studies.push({
-          id: 'SuperTrend@tv-basicstudies',
+          id: 'ATR@tv-basicstudies',
           inputs: {
-            Factor: config.strategy.indicators.supertrend.multiplier,
-            'ATR Period': config.strategy.indicators.supertrend.period,
+            length: config.strategy.indicators.keltner.atrPeriod,
           },
         });
 
-        // Keltner Channels - 肯特纳通道
+        // EMA (for Keltner Channel baseline)
         studies.push({
-          id: 'KeltnerChannels@tv-basicstudies',
+          id: 'MASimple@tv-basicstudies',
           inputs: {
             length: config.strategy.indicators.keltner.maPeriod,
-            mult: config.strategy.indicators.keltner.atrMultiple,
-            atrLength: config.strategy.indicators.keltner.atrPeriod,
           },
         });
 

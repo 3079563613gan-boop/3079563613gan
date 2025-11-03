@@ -140,6 +140,10 @@ export interface BacktestResult {
   startDate: number;
   endDate: number;
   equityCurve: { timestamp: number; equity: number }[];
+  // Chart data (optional, returned from backtest API)
+  candles?: Candle[];
+  dataSource?: 'binance-public' | 'generated';
+  totalCandles?: number;
 }
 
 export interface Position {

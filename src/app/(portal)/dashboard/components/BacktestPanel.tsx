@@ -11,10 +11,7 @@ const ProfitChart = dynamic(() => import('./ProfitChart'), {
   loading: () => <div className="w-full h-[400px] flex items-center justify-center bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700">加载图表中...</div>
 });
 
-const BacktestChart = dynamic(() => import('./BacktestChart'), {
-  ssr: false,
-  loading: () => <div className="w-full h-[500px] flex items-center justify-center bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700">加载K线图中...</div>
-});
+// K线图已移除 - 不再需要
 
 const BacktestProgress = dynamic(() => import('./BacktestProgress'), {
   ssr: false,
@@ -44,7 +41,7 @@ export default function BacktestPanel({ tradingConfig: initialConfig, onConfigCh
   const [endDate, setEndDate] = useState(
     new Date().toISOString().split('T')[0]
   );
-  const [initialCapital, setInitialCapital] = useState(10000);
+  const [initialCapital, setInitialCapital] = useState(100000); // INCREASED: $100,000 for testing
 
   const handleConfigChange = (newConfig: TradingConfig) => {
     setTradingConfig(newConfig);
@@ -98,6 +95,17 @@ export default function BacktestPanel({ tradingConfig: initialConfig, onConfigCh
 
       const data: BacktestResult = await response.json();
 
+      // CRITICAL DEBUG: Log received data
+      console.log('[BacktestPanel] ===== BACKTEST RESULTS RECEIVED =====');
+      console.log('[BacktestPanel] Total trades:', data.totalTrades);
+      console.log('[BacktestPanel] Trades array length:', data.trades?.length || 0);
+      console.log('[BacktestPanel] First 3 trades:', data.trades?.slice(0, 3));
+      console.log('[BacktestPanel] Candles received:', data.candles?.length || 0);
+      console.log('[BacktestPanel] Total candles:', data.totalCandles);
+      console.log('[BacktestPanel] Data source:', data.dataSource);
+      console.log('[BacktestPanel] ⚠️  CHART WILL SHOW:', !!(data.candles && data.candles.length > 0));
+      console.log('[BacktestPanel] =====================================');
+
       setProgressPercent(90);
       setProgressMessage('正在生成统计报告...');
 
@@ -108,8 +116,8 @@ export default function BacktestPanel({ tradingConfig: initialConfig, onConfigCh
       localStorage.setItem('latest_backtest_timestamp', Date.now().toString());
 
       // Save candles if included in response
-      if ((data as any).candles) {
-        localStorage.setItem('latest_backtest_candles', JSON.stringify((data as any).candles));
+      if (data.candles) {
+        localStorage.setItem('latest_backtest_candles', JSON.stringify(data.candles));
       }
 
       // Complete
@@ -243,14 +251,14 @@ export default function BacktestPanel({ tradingConfig: initialConfig, onConfigCh
           className="space-y-6"
         >
           {/* Data Source Info */}
-          {(results as any).dataSource && (
+          {results.dataSource && (
             <div className="bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 p-4">
               <div className="flex items-center">
                 <svg className="h-5 w-5 text-black dark:text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <p className="text-sm font-bold text-black dark:text-white">
-                  数据来源: {(results as any).dataSource === 'binance' ? 'Binance API (真实数据)' : '模拟历史数据 (确定性生成)'}
+                  数据来源: {results.dataSource === 'binance-public' ? 'Binance API (真实数据)' : '模拟历史数据 (确定性生成)'}
                 </p>
               </div>
             </div>
@@ -312,19 +320,7 @@ export default function BacktestPanel({ tradingConfig: initialConfig, onConfigCh
             </div>
           </div>
 
-          {/* K-Line Chart with Trade Markers */}
-          {(results as any).candles && (results as any).candles.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 p-8 border-2 border-black dark:border-white">
-              <h3 className="text-2xl font-bold text-black dark:text-white mb-6 pb-3 border-b-2 border-black dark:border-white">
-                K线图与交易标记
-              </h3>
-              <BacktestChart
-                candles={(results as any).candles}
-                trades={results.trades}
-                symbol={tradingConfig.symbol}
-              />
-            </div>
-          )}
+          {/* K线图已移除 - 不再需要 */}
 
           {/* Equity Curve Chart */}
           <div className="bg-white dark:bg-gray-800 p-8 border-2 border-black dark:border-white">

@@ -27,16 +27,39 @@ export class BacktestEngine {
     this.config = config;
     this.capital = config.initialCapital;
     this.strategy = new XAUUSDStrategy(config.tradingConfig);
+
+    // CRITICAL FIX: Use VERY relaxed risk limits for backtesting
+    // We want to see the full strategy performance without artificial daily limits
+    const backtestRiskConfig = {
+      ...config.tradingConfig.risk,
+      // EXTREME: Increase daily loss limit to 90% of capital
+      // This allows the strategy to fully execute without being blocked
+      maxDailyLoss: config.initialCapital * 0.9,
+      // EXTREME: Allow 50% max drawdown for testing
+      maxDrawdown: 0.5,
+      // Keep other settings
+      maxPositions: config.tradingConfig.risk.maxPositions,
+      positionSize: config.tradingConfig.risk.positionSize,
+    };
+
+    console.log(`[Engine] ⚙️  Backtest Configuration:`);
+    console.log(`[Engine]   - Initial capital: $${config.initialCapital.toLocaleString()}`);
+    console.log(`[Engine]   - Position size: ${backtestRiskConfig.positionSize} USDT`);
+    console.log(`[Engine]   - Daily loss limit: $${backtestRiskConfig.maxDailyLoss.toLocaleString()} (${(backtestRiskConfig.maxDailyLoss / config.initialCapital * 100).toFixed(0)}%)`);
+    console.log(`[Engine]   - Max drawdown: ${(backtestRiskConfig.maxDrawdown * 100).toFixed(0)}%`);
+    console.log(`[Engine]   - Max positions: ${backtestRiskConfig.maxPositions}`);
+
     this.riskManager = new RiskManager(
-      config.tradingConfig.risk,
+      backtestRiskConfig,
       config.initialCapital
     );
   }
 
   /**
-   * Run backtest on historical candle data
+   * Run backtest on historical candle data with optional 5m confirmation
+   * CRITICAL FIX: Now supports dual timeframe (1m + 5m) like Python implementation
    */
-  public async runBacktest(candles: Candle[]): Promise<BacktestResult> {
+  public async runBacktest(candles1m: Candle[], candles5m?: Candle[]): Promise<BacktestResult> {
     // Reset state
     this.trades = [];
     this.capital = this.config.initialCapital;
@@ -44,14 +67,27 @@ export class BacktestEngine {
     this.riskManager.reset(this.config.initialCapital);
 
     // Filter candles by date range
-    const filteredCandles = candles.filter(
+    const filteredCandles1m = candles1m.filter(
       c =>
         c.closeTime >= this.config.startDate &&
         c.closeTime <= this.config.endDate
     );
 
-    if (filteredCandles.length === 0) {
+    if (filteredCandles1m.length === 0) {
       throw new Error('No candles in specified date range');
+    }
+
+    // Filter 5m candles if provided
+    let filteredCandles5m: Candle[] | undefined;
+    if (candles5m) {
+      filteredCandles5m = candles5m.filter(
+        c =>
+          c.closeTime >= this.config.startDate &&
+          c.closeTime <= this.config.endDate
+      );
+      console.log(`[Engine] Using dual timeframe: ${filteredCandles1m.length} x 1m candles, ${filteredCandles5m.length} x 5m candles`);
+    } else {
+      console.log(`[Engine] Using single timeframe: ${filteredCandles1m.length} x 1m candles (no 5m confirmation)`);
     }
 
     // Need sufficient warmup period for indicators
@@ -59,9 +95,15 @@ export class BacktestEngine {
     let openTrades: Trade[] = [];
 
     // Process each candle
-    for (let i = warmupPeriod; i < filteredCandles.length; i++) {
-      const currentCandle = filteredCandles[i];
-      const historicalCandles = filteredCandles.slice(0, i + 1);
+    for (let i = warmupPeriod; i < filteredCandles1m.length; i++) {
+      const currentCandle = filteredCandles1m[i];
+      const historicalCandles1m = filteredCandles1m.slice(0, i + 1);
+
+      // Get aligned 5m candles up to current time
+      let historicalCandles5m: Candle[] | undefined;
+      if (filteredCandles5m) {
+        historicalCandles5m = filteredCandles5m.filter(c => c.closeTime <= currentCandle.closeTime);
+      }
 
       // Update equity curve
       this.equityCurve.push({
@@ -79,7 +121,7 @@ export class BacktestEngine {
       // Process open trades (check exits)
       for (let j = openTrades.length - 1; j >= 0; j--) {
         const trade = openTrades[j];
-        const exitResult = this.checkExit(trade, currentCandle, historicalCandles);
+        const exitResult = this.checkExit(trade, currentCandle, historicalCandles1m);
 
         if (exitResult.shouldExit) {
           // Close trade
@@ -100,12 +142,17 @@ export class BacktestEngine {
           this.riskManager.updateDailyPnL(trade);
           this.riskManager.updatePeakCapital(this.capital);
 
+          // LOG TRADE CLOSE
+          const pnlSign = pnl >= 0 ? '✅' : '❌';
+          console.log(`[Engine] ${pnlSign} Trade #${this.trades.length + 1} CLOSED at candle ${i}/${filteredCandles1m.length}: ${trade.side.toUpperCase()} exit @ $${trade.exitPrice.toFixed(2)}, Reason: ${exitResult.reason}, P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${trade.pnlPercent?.toFixed(2)}%), Capital: $${this.capital.toFixed(2)}`);
+
           // Move to closed trades
           this.trades.push(trade);
           openTrades.splice(j, 1);
         } else {
           // Update trailing stop if applicable
-          const indicators = this.strategy.generateSignal(historicalCandles).indicators;
+          const signal = this.strategy.generateSignal(historicalCandles1m, historicalCandles5m);
+          const indicators = signal.indicators;
           if (indicators) {
             const trailingResult = this.strategy.calculateTrailingStop(
               trade.entryPrice,
@@ -136,19 +183,31 @@ export class BacktestEngine {
 
       // Generate new signal if no open positions and trading allowed
       if (canTrade.allowed && openTrades.length === 0) {
-        const signal = this.strategy.generateSignal(historicalCandles);
+        // CRITICAL FIX: Pass both 1m and 5m candles
+        const signal = this.strategy.generateSignal(historicalCandles1m, historicalCandles5m);
 
         if (signal.type === 'long' || signal.type === 'short') {
           const newTrade = this.openTrade(signal, currentCandle);
           if (newTrade) {
             openTrades.push(newTrade);
+            console.log(`[Engine] 📈 Trade #${this.trades.length + openTrades.length} opened at candle ${i}/${filteredCandles1m.length}: ${newTrade.side.toUpperCase()} @ $${newTrade.entryPrice.toFixed(2)}, SL: $${newTrade.stopLoss.toFixed(2)}, TP: $${newTrade.takeProfit?.toFixed(2)}`);
           }
+        }
+      } else if (!canTrade.allowed) {
+        // Debug why trades are blocked - show more frequently
+        if (i === warmupPeriod || i % 500 === 0) {
+          console.log(`[Engine] ⚠️  Trading blocked at candle ${i}/${filteredCandles1m.length}: ${canTrade.reason}`);
+        }
+      } else if (openTrades.length > 0) {
+        // Already has open trade
+        if (i % 1000 === 0) {
+          console.log(`[Engine] 💼 Open position exists at candle ${i}/${filteredCandles1m.length}: ${openTrades[0].side.toUpperCase()} @ $${openTrades[0].entryPrice.toFixed(2)}`);
         }
       }
     }
 
     // Close any remaining open trades at the last candle
-    const lastCandle = filteredCandles[filteredCandles.length - 1];
+    const lastCandle = filteredCandles1m[filteredCandles1m.length - 1];
     for (const trade of openTrades) {
       trade.exitTime = lastCandle.closeTime;
       trade.exitPrice = lastCandle.close;
@@ -159,6 +218,24 @@ export class BacktestEngine {
       this.capital += trade.pnl;
       this.trades.push(trade);
     }
+
+    // Debug: Print backtest summary
+    console.log('\n========== BACKTEST SUMMARY ==========');
+    console.log(`Total candles processed: ${filteredCandles1m.length} (1m)` + (filteredCandles5m ? ` + ${filteredCandles5m.length} (5m)` : ''));
+    console.log(`Candles after warmup: ${filteredCandles1m.length - warmupPeriod}`);
+    console.log(`Total trades executed: ${this.trades.length}`);
+    console.log(`Strategy: ${this.config.tradingConfig.strategy.name || 'XAUUSD Hybrid'}`);
+    console.log(`Aggressiveness: ${this.config.tradingConfig.strategy.aggressiveness}`);
+    console.log(`Timeframe: ${this.config.tradingConfig.interval}` + (filteredCandles5m ? ' + 5m confirmation' : ' (no 5m)'));
+
+    if (this.trades.length > 0) {
+      console.log(`\nTrade breakdown:`);
+      console.log(`  - Winning trades: ${this.trades.filter(t => (t.pnl || 0) > 0).length}`);
+      console.log(`  - Losing trades: ${this.trades.filter(t => (t.pnl || 0) < 0).length}`);
+      console.log(`  - First trade: ${this.trades[0].side} @ $${this.trades[0].entryPrice}`);
+      console.log(`  - Last trade: ${this.trades[this.trades.length - 1].side} @ $${this.trades[this.trades.length - 1].entryPrice}`);
+    }
+    console.log('======================================\n');
 
     // Calculate final metrics
     return this.calculateResults();
@@ -254,15 +331,20 @@ export class BacktestEngine {
    * Calculate P&L for a trade
    */
   private calculatePnL(trade: Trade): number {
-    if (!trade.exitPrice) return 0;
+    if (!trade.exitPrice || !trade.positionSize) return 0;
 
     const priceDiff =
       trade.side === 'long'
         ? trade.exitPrice - trade.entryPrice
         : trade.entryPrice - trade.exitPrice;
 
-    // For XAUUSD, 1 lot = 100 oz, price is per oz
-    const contractSize = 100;
+    // Contract size depends on symbol
+    // Crypto: 1 contract = 1 coin (BTCUSDT, ETHUSDT, etc.)
+    // Gold: 1 lot = 100 oz (XAUUSD)
+    const contractSize = trade.symbol.includes('XAU') ? 100 : 1;
+
+    // P&L = price difference × position size × contract size × leverage
+    // leverage is already factored into positionSize, so we don't multiply again
     return priceDiff * trade.positionSize * contractSize;
   }
 

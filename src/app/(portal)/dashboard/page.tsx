@@ -11,21 +11,21 @@ import BrandName from '@/components/custom/BrandName';
 import type { TradingConfig } from '@/lib/trading/types';
 
 const defaultConfig: TradingConfig = {
-  symbol: 'BTCUSDT',
-  interval: '15m',
+  symbol: 'XAUUSDT', // 默认XAUUSDT黄金
+  interval: '1m', // 1分钟K线
   strategy: {
-    aggressiveness: 2,
-    trailingActivation: 0.8,
-    trailingDistance: 1.0,
+    aggressiveness: 3, // 激进模式
+    trailingActivation: 1.0, // 1R激活跟踪止盈
+    trailingDistance: 0.5, // 0.5 ATR跟踪距离（更紧密）
     indicators: {
       keltner: {
-        maPeriod: 15,
-        atrPeriod: 10,
-        atrMultiple: 0.5,
+        maPeriod: 20, // 肯特那通道MA周期
+        atrPeriod: 14, // ATR周期14（更稳定）
+        atrMultiple: 1.5, // 1.5倍ATR（更宽的通道）
       },
       bollinger: {
-        period: 15,
-        deviation: 1.0,
+        period: 20, // BB周期20（经典参数）
+        deviation: 2.0, // 2倍标准差
       },
       macd: {
         fastPeriod: 12,
@@ -33,7 +33,7 @@ const defaultConfig: TradingConfig = {
         signalPeriod: 9,
       },
       cci: {
-        period: 20,
+        period: 14, // CCI周期14（经典参数）
       },
       supertrend: {
         period: 10,
@@ -42,13 +42,13 @@ const defaultConfig: TradingConfig = {
     },
   },
   risk: {
-    maxDailyLoss: 500, // 5% of $10,000 initial capital
-    maxDrawdown: 0.10, // 10% total drawdown
+    maxDailyLoss: 90000, // 90%资金
+    maxDrawdown: 0.50, // 50%最大回撤
     maxPositions: 1,
-    positionSize: 10, // USDT
-    leverage: 10, // 10x leverage
-    stopLossMultiple: 1.5,
-    takeProfitLevels: [1.5, 2.5, 4.0],
+    positionSize: 0.01, // 0.01 USDT仓位
+    leverage: 20, // 20倍杠杆
+    stopLossMultiple: 2.0, // 2倍ATR止损（更宽，减少假突破）
+    takeProfitLevels: [2.0, 3.0, 5.0], // 更激进的止盈目标
   },
 };
 

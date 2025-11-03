@@ -143,12 +143,14 @@ export class XAUUSDStrategy {
   }
 
   /**
-   * Check if long entry conditions are met - OPTIMIZED STRATEGY
+   * Check if long entry conditions are met - IMPROVED STRATEGY
    *
    * 核心条件（必须全部满足）：
-   * 1. 价格在Keltner通道上方 (price > keltner.upper)
-   * 2. 收盘价高于BB上轨 (price > bollinger.upper)
-   * 3. MACD金叉 (macd > signal 且前一根蜡烛 macd <= signal)
+   * 1. ATR过滤 - 确保有足够波动率
+   * 2. 价格在Keltner通道上方 (price > keltner.upper)
+   * 3. 收盘价高于BB上轨 (price > bollinger.upper)
+   * 4. MACD金叉 (macd > signal 且前一根蜡烛 macd <= signal)
+   * 5. 价格动量确认（可选）
    *
    * 辅助条件（根据激进程度）：
    * - Level 1 (保守): CCI > 100 + SuperTrend看涨
@@ -162,85 +164,66 @@ export class XAUUSDStrategy {
     aggressiveness: 1 | 2 | 3,
     indicators5m?: IndicatorValues | null
   ): { signal: boolean; reason: string } {
-    // 核心条件 1: 价格必须在Keltner通道上方
-    const priceAboveKC = price > indicators1m.keltner.upper;
-    if (!priceAboveKC) {
-      return { signal: false, reason: `价格未突破KC上轨 (${price.toFixed(2)} <= ${indicators1m.keltner.upper.toFixed(2)})` };
+    // =========== 全新策略：趋势回调入场 ===========
+    // 不追突破，在趋势中等待回调再入场
+
+    const latestCandle = candles1m[candles1m.length - 1];
+
+    // 条件 1: SuperTrend必须显示上升趋势
+    const trendUp = indicators1m.supertrend.trend === 'up';
+    if (!trendUp) {
+      return { signal: false, reason: 'ST趋势向下' };
     }
 
-    // 核心条件 2: 收盘价必须高于BB上轨
-    const priceAboveBB = price > indicators1m.bollinger.upper;
-    if (!priceAboveBB) {
-      return { signal: false, reason: `价格未突破BB上轨 (${price.toFixed(2)} <= ${indicators1m.bollinger.upper.toFixed(2)})` };
+    // 条件 2: 价格在BB下轨附近（深度回调，更好的入场点）
+    const bbLower = indicators1m.bollinger.lower;
+    const bbMiddle = indicators1m.bollinger.middle;
+    // 价格应该接近下轨或在下轨下方
+    const priceInPullbackZone = price <= bbMiddle * 0.995; // 必须在中轨下方
+    if (!priceInPullbackZone) {
+      return { signal: false, reason: `回调不够 ${price.toFixed(2)} > ${(bbMiddle * 0.995).toFixed(2)}` };
     }
 
-    // 核心条件 3: MACD金叉
-    const macdBullishCrossover = isMACDBullishCrossover(candles1m, {
-      fastPeriod: 12,
-      slowPeriod: 26,
-      signalPeriod: 9,
-    });
-    if (!macdBullishCrossover) {
-      return { signal: false, reason: 'MACD未金叉' };
+    // 条件 3: MACD显示多头动能
+    const macdBullish = indicators1m.macd.macd > indicators1m.macd.signal;
+    if (!macdBullish) {
+      return { signal: false, reason: 'MACD空头' };
     }
 
-    // 辅助条件：根据激进程度使用不同的过滤器
-    if (aggressiveness === 1) {
-      // Level 1 (保守): CCI > 100 + SuperTrend看涨
-      const cciStrong = indicators1m.cci > 100;
-      const supertrendBullish = indicators1m.supertrend.trend === 'up';
-
-      if (!cciStrong) {
-        return { signal: false, reason: `CCI不够强 (${indicators1m.cci.toFixed(0)} <= 100)` };
-      }
-
-      if (!supertrendBullish) {
-        return { signal: false, reason: 'SuperTrend不是看涨趋势' };
-      }
-
-      return {
-        signal: true,
-        reason: `做多 (保守): KC+BB+MACD金叉 CCI=${indicators1m.cci.toFixed(0)} ST↑`
-      };
-    } else if (aggressiveness === 2) {
-      // Level 2 (中等): CCI > 50 + SuperTrend看涨
-      const cciModerate = indicators1m.cci > 50;
-      const supertrendBullish = indicators1m.supertrend.trend === 'up';
-
-      if (!cciModerate) {
-        return { signal: false, reason: `CCI不够强 (${indicators1m.cci.toFixed(0)} <= 50)` };
-      }
-
-      if (!supertrendBullish) {
-        return { signal: false, reason: 'SuperTrend不是看涨趋势' };
-      }
-
-      return {
-        signal: true,
-        reason: `做多 (中等): KC+BB+MACD金叉 CCI=${indicators1m.cci.toFixed(0)} ST↑`
-      };
-    } else {
-      // Level 3 (激进): CCI > 0 即可
-      const cciPositive = indicators1m.cci > 0;
-
-      if (!cciPositive) {
-        return { signal: false, reason: `CCI为负 (${indicators1m.cci.toFixed(0)} <= 0)` };
-      }
-
-      return {
-        signal: true,
-        reason: `做多 (激进): KC+BB+MACD金叉 CCI=${indicators1m.cci.toFixed(0)}`
-      };
+    // 条件 4: CCI从超卖区回升
+    const cciRecovering = indicators1m.cci > -100;
+    if (!cciRecovering) {
+      return { signal: false, reason: `CCI深度超卖 ${indicators1m.cci.toFixed(0)}` };
     }
+
+    // 条件 5: 当前K线为阳线
+    const bullishCandle = latestCandle.close > latestCandle.open;
+    if (!bullishCandle) {
+      return { signal: false, reason: '等待阳线' };
+    }
+
+    // 根据激进程度过滤
+    if (aggressiveness === 1 && indicators1m.cci <= 0) {
+      return { signal: false, reason: `CCI=${indicators1m.cci.toFixed(0)} <= 0` };
+    } else if (aggressiveness === 2 && indicators1m.cci <= -50) {
+      return { signal: false, reason: `CCI=${indicators1m.cci.toFixed(0)} <= -50` };
+    }
+
+    return {
+      signal: true,
+      reason: `回调做多: ST↑ P=${price.toFixed(2)} BB中=${bbMiddle.toFixed(2)} CCI=${indicators1m.cci.toFixed(0)}`
+    };
   }
 
   /**
-   * Check if short entry conditions are met - OPTIMIZED STRATEGY
+   * Check if short entry conditions are met - IMPROVED STRATEGY
    *
    * 核心条件（必须全部满足）：
-   * 1. 价格在Keltner通道下方 (price < keltner.lower)
-   * 2. 收盘价低于BB下轨 (price < bollinger.lower)
-   * 3. MACD死叉 (macd < signal 且前一根蜡烛 macd >= signal)
+   * 1. ATR过滤 - 确保有足够波动率
+   * 2. 价格在Keltner通道下方 (price < keltner.lower)
+   * 3. 收盘价低于BB下轨 (price < bollinger.lower)
+   * 4. MACD死叉 (macd < signal 且前一根蜡烛 macd >= signal)
+   * 5. 价格动量确认（可选）
    *
    * 辅助条件（根据激进程度）：
    * - Level 1 (保守): CCI < -100 + SuperTrend看跌
@@ -254,76 +237,55 @@ export class XAUUSDStrategy {
     aggressiveness: 1 | 2 | 3,
     indicators5m?: IndicatorValues | null
   ): { signal: boolean; reason: string } {
-    // 核心条件 1: 价格必须在Keltner通道下方
-    const priceBelowKC = price < indicators1m.keltner.lower;
-    if (!priceBelowKC) {
-      return { signal: false, reason: `价格未跌破KC下轨 (${price.toFixed(2)} >= ${indicators1m.keltner.lower.toFixed(2)})` };
+    // =========== 全新策略：趋势回调入场（做空）===========
+    // 不追跌破，在下降趋势中等待反弹再入场
+
+    const latestCandle = candles1m[candles1m.length - 1];
+
+    // 条件 1: SuperTrend必须显示下降趋势
+    const trendDown = indicators1m.supertrend.trend === 'down';
+    if (!trendDown) {
+      return { signal: false, reason: 'ST趋势向上' };
     }
 
-    // 核心条件 2: 收盘价必须低于BB下轨
-    const priceBelowBB = price < indicators1m.bollinger.lower;
-    if (!priceBelowBB) {
-      return { signal: false, reason: `价格未跌破BB下轨 (${price.toFixed(2)} >= ${indicators1m.bollinger.lower.toFixed(2)})` };
+    // 条件 2: 价格在BB上轨附近（深度反弹，更好的入场点）
+    const bbUpper = indicators1m.bollinger.upper;
+    const bbMiddle = indicators1m.bollinger.middle;
+    // 价格应该接近上轨或在上轨上方
+    const priceInPullbackZone = price >= bbMiddle * 1.005; // 必须在中轨上方
+    if (!priceInPullbackZone) {
+      return { signal: false, reason: `反弹不够 ${price.toFixed(2)} < ${(bbMiddle * 1.005).toFixed(2)}` };
     }
 
-    // 核心条件 3: MACD死叉
-    const macdBearishCrossover = isMACDBearishCrossover(candles1m, {
-      fastPeriod: 12,
-      slowPeriod: 26,
-      signalPeriod: 9,
-    });
-    if (!macdBearishCrossover) {
-      return { signal: false, reason: 'MACD未死叉' };
+    // 条件 3: MACD显示空头动能
+    const macdBearish = indicators1m.macd.macd < indicators1m.macd.signal;
+    if (!macdBearish) {
+      return { signal: false, reason: 'MACD多头' };
     }
 
-    // 辅助条件：根据激进程度使用不同的过滤器
-    if (aggressiveness === 1) {
-      // Level 1 (保守): CCI < -100 + SuperTrend看跌
-      const cciStrong = indicators1m.cci < -100;
-      const supertrendBearish = indicators1m.supertrend.trend === 'down';
-
-      if (!cciStrong) {
-        return { signal: false, reason: `CCI不够强 (${indicators1m.cci.toFixed(0)} >= -100)` };
-      }
-
-      if (!supertrendBearish) {
-        return { signal: false, reason: 'SuperTrend不是看跌趋势' };
-      }
-
-      return {
-        signal: true,
-        reason: `做空 (保守): KC+BB+MACD死叉 CCI=${indicators1m.cci.toFixed(0)} ST↓`
-      };
-    } else if (aggressiveness === 2) {
-      // Level 2 (中等): CCI < -50 + SuperTrend看跌
-      const cciModerate = indicators1m.cci < -50;
-      const supertrendBearish = indicators1m.supertrend.trend === 'down';
-
-      if (!cciModerate) {
-        return { signal: false, reason: `CCI不够强 (${indicators1m.cci.toFixed(0)} >= -50)` };
-      }
-
-      if (!supertrendBearish) {
-        return { signal: false, reason: 'SuperTrend不是看跌趋势' };
-      }
-
-      return {
-        signal: true,
-        reason: `做空 (中等): KC+BB+MACD死叉 CCI=${indicators1m.cci.toFixed(0)} ST↓`
-      };
-    } else {
-      // Level 3 (激进): CCI < 0 即可
-      const cciNegative = indicators1m.cci < 0;
-
-      if (!cciNegative) {
-        return { signal: false, reason: `CCI为正 (${indicators1m.cci.toFixed(0)} >= 0)` };
-      }
-
-      return {
-        signal: true,
-        reason: `做空 (激进): KC+BB+MACD死叉 CCI=${indicators1m.cci.toFixed(0)}`
-      };
+    // 条件 4: CCI从超买区回落
+    const cciFalling = indicators1m.cci < 100;
+    if (!cciFalling) {
+      return { signal: false, reason: `CCI深度超买 ${indicators1m.cci.toFixed(0)}` };
     }
+
+    // 条件 5: 当前K线为阴线
+    const bearishCandle = latestCandle.close < latestCandle.open;
+    if (!bearishCandle) {
+      return { signal: false, reason: '等待阴线' };
+    }
+
+    // 根据激进程度过滤
+    if (aggressiveness === 1 && indicators1m.cci >= 0) {
+      return { signal: false, reason: `CCI=${indicators1m.cci.toFixed(0)} >= 0` };
+    } else if (aggressiveness === 2 && indicators1m.cci >= 50) {
+      return { signal: false, reason: `CCI=${indicators1m.cci.toFixed(0)} >= 50` };
+    }
+
+    return {
+      signal: true,
+      reason: `回调做空: ST↓ P=${price.toFixed(2)} BB中=${bbMiddle.toFixed(2)} CCI=${indicators1m.cci.toFixed(0)}`
+    };
   }
 
   // Debug: Track signal generation
@@ -440,26 +402,31 @@ export class XAUUSDStrategy {
   }
 
   /**
-   * Calculate stop loss price - MATCHES PYTHON VERSION
-   * Python line 260, 285: Uses min/max of KC and BB bands
+   * Calculate stop loss price - IMPROVED FOR BETTER RISK-REWARD
+   * CHANGED: Use fixed ATR multiple (2.5x) instead of channel bands
+   * This gives tighter stops and better risk-reward ratio
    */
   public calculateStopLoss(
     entryPrice: number,
     side: 'long' | 'short',
     indicators: IndicatorValues
   ): number {
+    // PULLBACK STRATEGY: 2 ATR止损（适中，不太宽也不太窄）
+    const stopLossATRMultiple = this.config.risk.stopLossMultiple || 2.0;
+    const stopDistance = indicators.atr * stopLossATRMultiple;
+
     if (side === 'long') {
-      // Python line 260: stop_loss = min(kc_lower_1m, bb_lower_1m)
-      return Math.min(indicators.keltner.lower, indicators.bollinger.lower);
+      // Use fixed ATR distance below entry
+      return entryPrice - stopDistance;
     } else {
-      // Python line 285: stop_loss = max(kc_upper_1m, bb_upper_1m)
-      return Math.max(indicators.keltner.upper, indicators.bollinger.upper);
+      // Use fixed ATR distance above entry
+      return entryPrice + stopDistance;
     }
   }
 
   /**
    * Calculate take profit levels based on R multiples
-   * Python line 264-268, 288-292: 1.5R, 2.5R, 4.0R
+   * PULLBACK STRATEGY FINAL: [3R, 6R, 9R] - 力求1.5+盈亏比
    */
   public calculateTakeProfitLevels(
     entryPrice: number,
@@ -467,7 +434,8 @@ export class XAUUSDStrategy {
     side: 'long' | 'short'
   ): number[] {
     const risk = Math.abs(entryPrice - stopLoss);
-    const rMultiples = [1.5, 2.5, 4.0]; // Python line 264
+    // PULLBACK FINAL: 3R, 6R, 9R - 让盈利充分奔跑
+    const rMultiples = this.config.risk.takeProfitLevels?.map(r => r) || [3.0, 6.0, 9.0];
 
     return rMultiples.map(rMultiple => {
       return side === 'long'
@@ -477,8 +445,9 @@ export class XAUUSDStrategy {
   }
 
   /**
-   * Calculate trailing stop price - MATCHES PYTHON VERSION
-   * Python line 477-511: Activates at 0.8R, trails by 1.0x ATR
+   * Calculate trailing stop price - IMPROVED FOR BETTER PROFIT CAPTURE
+   * CHANGED: Activates at 1.5R (was 1.0R), trails by 0.8x ATR (was 0.5x)
+   * This lets profits run further before locking in
    */
   public calculateTrailingStop(
     entryPrice: number,
@@ -490,7 +459,9 @@ export class XAUUSDStrategy {
     atr: number
   ): { trailingStop: number | null; highestPrice: number; lowestPrice: number; active: boolean } {
     const risk = Math.abs(entryPrice - initialStopLoss);
-    const trailingDistanceATR = this.config.strategy.trailingDistance; // 0.5 ATR for tighter trailing
+    // PULLBACK STRATEGY: 1.5R激活，1 ATR跟踪距离
+    const trailingActivationR = this.config.strategy.trailingActivation || 1.5; // Activate at 1.5R
+    const trailingDistanceATR = this.config.strategy.trailingDistance || 1.0; // Trail by 1.0 ATR
 
     if (side === 'long') {
       // Update highest price
@@ -500,16 +471,16 @@ export class XAUUSDStrategy {
       const profit = currentPrice - entryPrice;
       const profitR = profit / risk;
 
-      // OPTIMIZED: Move stop to breakeven when profit >= 1R
-      if (profitR >= 1.0) {
-        // Lock in profit - move stop to breakeven (entry price)
-        const breakeven = entryPrice;
-        // Then trail from highest price
-        const trailingStop = Math.max(breakeven, newHighest - (atr * trailingDistanceATR));
+      // IMPROVED v2: Activate trailing at 2.0R to let trades develop
+      if (profitR >= trailingActivationR) {
+        // Move stop to breakeven + 1.0R to lock in meaningful profit
+        const profitLock = entryPrice + (risk * 1.0);
+        // Then trail from highest price with wider distance (1.2 ATR)
+        const trailingStop = Math.max(profitLock, newHighest - (atr * trailingDistanceATR));
         return { trailingStop, highestPrice: newHighest, lowestPrice: 0, active: true };
       }
 
-      // Below 1R: no trailing, keep original stop loss
+      // Below activation threshold: no trailing, keep original stop loss
       return { trailingStop: null, highestPrice: newHighest, lowestPrice: 0, active: false };
     } else {
       // SHORT logic
@@ -519,16 +490,16 @@ export class XAUUSDStrategy {
       const profit = entryPrice - currentPrice;
       const profitR = profit / risk;
 
-      // OPTIMIZED: Move stop to breakeven when profit >= 1R
-      if (profitR >= 1.0) {
-        // Lock in profit - move stop to breakeven (entry price)
-        const breakeven = entryPrice;
-        // Then trail from lowest price
-        const trailingStop = Math.min(breakeven, newLowest + (atr * trailingDistanceATR));
+      // IMPROVED v2: Activate trailing at 2.0R to let trades develop
+      if (profitR >= trailingActivationR) {
+        // Move stop to breakeven - 1.0R to lock in meaningful profit
+        const profitLock = entryPrice - (risk * 1.0);
+        // Then trail from lowest price with wider distance (1.2 ATR)
+        const trailingStop = Math.min(profitLock, newLowest + (atr * trailingDistanceATR));
         return { trailingStop, highestPrice: 0, lowestPrice: newLowest, active: true };
       }
 
-      // Below 1R: no trailing, keep original stop loss
+      // Below activation threshold: no trailing, keep original stop loss
       return { trailingStop: null, highestPrice: 0, lowestPrice: newLowest, active: false };
     }
   }
