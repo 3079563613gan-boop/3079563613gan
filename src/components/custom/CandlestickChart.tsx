@@ -38,8 +38,13 @@ export default function CandlestickChart() {
       const open = previousClose;
       const changePercent = (Math.random() - 0.5) * 0.04;
       const close = open * (1 + changePercent);
-      const high = Math.max(open, close) * (1 + Math.random() * 0.015);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.015);
+
+      // Random wick length: 0% to 0.8% (shorter and more varied)
+      const upperWickPercent = Math.random() * 0.008;
+      const lowerWickPercent = Math.random() * 0.008;
+
+      const high = Math.max(open, close) * (1 + upperWickPercent);
+      const low = Math.min(open, close) * (1 - lowerWickPercent);
 
       return { time, open, high, low, close };
     };
@@ -55,6 +60,64 @@ export default function CandlestickChart() {
       }
 
       return emaData;
+    };
+
+    // Calculate CCI (Commodity Channel Index)
+    const calculateCCI = (candles: Candle[], period: number): number[] => {
+      const cciData: number[] = [];
+
+      for (let i = 0; i < candles.length; i++) {
+        if (i < period - 1) {
+          cciData[i] = 0;
+          continue;
+        }
+
+        // Calculate Typical Price for the period
+        const typicalPrices: number[] = [];
+        for (let j = i - period + 1; j <= i; j++) {
+          const tp = (candles[j].high + candles[j].low + candles[j].close) / 3;
+          typicalPrices.push(tp);
+        }
+
+        // Calculate SMA of Typical Price
+        const smaTP = typicalPrices.reduce((a, b) => a + b, 0) / period;
+
+        // Calculate Mean Deviation
+        let meanDeviation = 0;
+        for (let j = 0; j < typicalPrices.length; j++) {
+          meanDeviation += Math.abs(typicalPrices[j] - smaTP);
+        }
+        meanDeviation /= period;
+
+        // Calculate CCI
+        const currentTP = (candles[i].high + candles[i].low + candles[i].close) / 3;
+        if (meanDeviation !== 0) {
+          cciData[i] = (currentTP - smaTP) / (0.015 * meanDeviation);
+        } else {
+          cciData[i] = 0;
+        }
+      }
+
+      return cciData;
+    };
+
+    // Get candle color based on CCI (NS Indicator logic)
+    const getCandleColor = (cci1: number, cci2: number, isBullish: boolean): { body: string; wick: string; hollow: boolean } => {
+      // Sensitivity = 1 (default): CCI1 period = 7, CCI2 period = 49
+
+      if (cci1 >= 0 && cci2 >= 0) {
+        // Strong uptrend - Black border, hollow
+        return { body: 'rgba(0, 0, 0, 1)', wick: 'rgba(0, 0, 0, 1)', hollow: true };
+      } else if (cci1 < 0 && cci2 >= 0) {
+        // Weak/warning - Light gray, bullish candles hollow
+        return { body: 'rgba(180, 180, 180, 1)', wick: 'rgba(180, 180, 180, 1)', hollow: isBullish };
+      } else if (cci1 < 0 && cci2 < 0) {
+        // Strong downtrend - Black, filled
+        return { body: 'rgba(0, 0, 0, 1)', wick: 'rgba(0, 0, 0, 1)', hollow: false };
+      } else { // cci1 > 0 && cci2 < 0
+        // Bounce/weak - Light gray, bullish candles hollow
+        return { body: 'rgba(180, 180, 180, 1)', wick: 'rgba(180, 180, 180, 1)', hollow: isBullish };
+      }
     };
 
     // Calculate Simple Moving Average (SMA)
@@ -209,6 +272,10 @@ export default function CandlestickChart() {
       const padding = { top: 0, bottom: 0, left: 0, right: 0 };
       const chartHeight = rect.height - padding.top - padding.bottom;
 
+      // Calculate CCI for NS indicator (Sensitivity = 1)
+      const cci1 = candles.length >= 7 ? calculateCCI(candles, 7) : [];
+      const cci2 = candles.length >= 49 ? calculateCCI(candles, 49) : [];
+
       // Draw vertical grid lines
       ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
       ctx.lineWidth = 1;
@@ -229,10 +296,9 @@ export default function CandlestickChart() {
         ctx.stroke();
       }
 
-      // Draw candles - starting from left edge
+      // Draw candles with NS indicator colors
       candles.forEach((candle, index) => {
         const x = index * candleSpacing + candleWidth / 2;
-        const isUp = candle.close > candle.open;
 
         const highY = padding.top + ((maxPrice - candle.high) / priceRange) * chartHeight;
         const lowY = padding.top + ((maxPrice - candle.low) / priceRange) * chartHeight;
@@ -242,23 +308,35 @@ export default function CandlestickChart() {
         const bodyBottom = Math.max(openY, closeY);
         const bodyHeight = Math.max(bodyBottom - bodyTop, 1);
 
-        // Draw wick
-        ctx.strokeStyle = '#000000';
+        // Determine if bullish (阳线) or bearish (阴线)
+        const isBullish = candle.close > candle.open;
+
+        // Get CCI-based color for this candle
+        const currentCCI1 = cci1[index] || 0;
+        const currentCCI2 = cci2[index] || 0;
+        const candleColor = getCandleColor(currentCCI1, currentCCI2, isBullish);
+
+        // Draw wick with CCI color
+        ctx.strokeStyle = candleColor.wick;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x, highY);
         ctx.lineTo(x, lowY);
         ctx.stroke();
 
-        // Draw body
-        if (isUp) {
-          ctx.strokeStyle = '#000000';
-          ctx.fillStyle = '#ffffff';
-          ctx.lineWidth = 2;
+        // Draw body with CCI color
+        if (candleColor.hollow) {
+          // Hollow candle (空心)
+          // First fill with background color to hide the wick
+          ctx.fillStyle = 'rgba(255, 255, 255, 1)'; // White background
           ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
+          // Then draw the border
+          ctx.strokeStyle = candleColor.body;
+          ctx.lineWidth = 2;
           ctx.strokeRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
         } else {
-          ctx.fillStyle = '#000000';
+          // Filled candle (实心)
+          ctx.fillStyle = candleColor.body;
           ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
         }
       });
