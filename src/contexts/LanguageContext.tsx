@@ -448,6 +448,8 @@ const translations: Record<Language, Record<string, string>> = {
     'notification.time': '刚刚',
 
     // 不适合人群 & 候选人期望 & 考察重点
+    'qualification.title': '你是否符合基本条件？',
+    'qualification.subtitle': '请认真评估自己是否具备成为职业交易员的基本条件',
     'unsuitable.title': '明确不适合的人群',
     'unsuitable.subtitle': '以下类型的候选人不适合我们的培训',
     'unsuitable.pressure': '经济压力大、指望交易快速变现的人',
@@ -925,6 +927,8 @@ const translations: Record<Language, Record<string, string>> = {
     'notification.time': 'Just now',
 
     // Unsuitable Candidates & Expectations & Assessment
+    'qualification.title': 'Do You Meet the Basic Requirements?',
+    'qualification.subtitle': 'Please carefully assess whether you possess the basic qualifications to become a professional trader',
     'unsuitable.title': 'Unsuitable Candidates',
     'unsuitable.subtitle': 'The following types of candidates are not suitable for our training',
     'unsuitable.pressure': 'People with financial pressure seeking quick profits from trading',

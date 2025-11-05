@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRef, useEffect } from 'react';
 
 const testimonials = [
   {
@@ -224,6 +225,34 @@ const testimonials = [
 
 export default function Testimonials() {
   const { t, language } = useLanguage();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const scrollWidth = scrollContainer.scrollWidth;
+    const clientWidth = scrollContainer.clientWidth;
+    let scrollPosition = 0;
+
+    const autoScroll = () => {
+      scrollPosition += 1;
+
+      // Reset to start when reaching the end
+      if (scrollPosition >= scrollWidth - clientWidth) {
+        scrollPosition = 0;
+      }
+
+      scrollContainer.scrollTo({
+        left: scrollPosition,
+        behavior: 'smooth'
+      });
+    };
+
+    const interval = setInterval(autoScroll, 30); // Scroll every 30ms for smooth animation
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <section className="py-20 bg-white dark:bg-black">
@@ -245,13 +274,13 @@ export default function Testimonials() {
               : 'Real feedback from students who became professional traders through systematic training'}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500">
-            {language === 'zh' ? '← 左右滑动查看更多 →' : '← Scroll to see more →'}
+            {language === 'zh' ? '自动滚动中...' : 'Auto-scrolling...'}
           </p>
         </motion.div>
 
         {/* Testimonials Horizontal Scroll */}
         <div className="relative">
-          <div className="overflow-x-auto pb-4 scrollbar-hide">
+          <div ref={scrollContainerRef} className="overflow-x-auto pb-4 scrollbar-hide">
             <div className="flex gap-6" style={{ width: 'max-content' }}>
               {testimonials.map((testimonial, index) => (
                 <motion.div
