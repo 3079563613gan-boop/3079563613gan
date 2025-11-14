@@ -225,8 +225,8 @@ export const NavbarLogo = () => {
         width={30}
         height={30}
       />
-      <span className="font-black text-black dark:text-white">FX</span>
-      <span className="font-normal text-gray-600 dark:text-gray-400">Killer</span>
+      <span className="font-black text-black dark:text-white">阿甘</span>
+      <span className="font-normal text-gray-600 dark:text-gray-400">资本</span>
     </a>
   );
 };

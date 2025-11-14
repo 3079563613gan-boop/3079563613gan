@@ -33,3 +33,20 @@
     animation: shake 3s ease-in-out infinite;
   }
 }
+
+/* 隐藏并移除 Calendly 组件 */
+[class*="calendly"],
+[id*="calendly"],
+iframe[src*="calendly"],
+.calendly-inline-widget,
+.calendly-popup-button,
+.calendly-badge-widget {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+}

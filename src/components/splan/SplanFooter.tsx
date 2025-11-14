@@ -16,12 +16,8 @@ export default function SplanFooter() {
           {/* About */}
           <div>
             <div className="flex items-center mb-4">
-              <span className="text-xl font-black text-white">
-                {language === 'zh' ? '汇' : 'FX'}
-              </span>
-              <span className="text-xl font-normal text-gray-400 ml-1">
-                {language === 'zh' ? '刃' : 'Killer'}
-              </span>
+              <span className="text-xl font-black text-white">阿甘</span>
+              <span className="text-xl font-normal text-gray-400 ml-1">资本</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed mb-4">
               {t('footer.about')}
@@ -30,7 +26,7 @@ export default function SplanFooter() {
             <div className="flex items-center gap-4">
               {/* Telegram */}
               <a
-                href="https://t.me/binance_cashcontrol"
+                href="https://telegram.org/dl"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"
@@ -43,7 +39,7 @@ export default function SplanFooter() {
 
               {/* X (Twitter) */}
               <a
-                href="https://x.com/RealFXkiller"
+                href="https://x.com/AganCapital"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"
@@ -56,7 +52,7 @@ export default function SplanFooter() {
 
               {/* YouTube */}
               <a
-                href="https://www.youtube.com/@FX-Killer-Trader"
+                href="https://www.youtube.com/@AganCapitalTrader"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors"
@@ -80,7 +76,7 @@ export default function SplanFooter() {
 
               {/* Email */}
               <a
-                href="mailto:x.stark.dylan@gmail.com"
+                href="mailto:3079563613gan@gmail.com"
                 className="text-gray-400 hover:text-white transition-colors"
                 title="Email"
               >

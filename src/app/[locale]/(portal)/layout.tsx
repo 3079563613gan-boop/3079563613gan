@@ -19,33 +19,33 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL('https://fxkiller.com'),
   title: {
-    default: "FX Killer - Professional FX Trader Training Platform | 外汇交易职业交易员培训",
-    template: "%s | FX Killer"
+    default: "阿甘资本 - Professional FX Trader Training Platform | 外汇交易职业交易员培训",
+    template: "%s | 阿甘资本"
   },
-  description: "FX Killer - 专注于外汇交易的职业交易员培训平台。提供系统化外汇交易培训、实战训练和资金支持。通过专业考核即可获得资金管理权限，分润比例高达90%。培养真正适合外汇市场的专业交易员。",
-  keywords: ["FX Killer", "外汇交易", "外汇培训", "职业交易员", "FX交易", "外汇交易员", "外汇培训平台", "forex交易", "专业交易员培训", "外汇实战", "外汇技能培训"],
-  authors: [{ name: "FX Killer" }],
-  creator: "FX Killer",
-  publisher: "FX Killer",
+  description: "阿甘资本 - 专注于外汇交易的职业交易员培训平台。提供系统化外汇交易培训、实战训练和资金支持。通过专业考核即可获得资金管理权限，分润比例高达90%。培养真正适合外汇市场的专业交易员。",
+  keywords: ["阿甘资本", "外汇交易", "外汇培训", "职业交易员", "FX交易", "外汇交易员", "外汇培训平台", "forex交易", "专业交易员培训", "外汇实战", "外汇技能培训"],
+  authors: [{ name: "阿甘资本" }],
+  creator: "阿甘资本",
+  publisher: "阿甘资本",
   openGraph: {
     type: "website",
     locale: "zh_CN",
     url: "https://fxkiller.com",
-    siteName: "FX Killer",
-    title: "FX Killer - Professional FX Trader Training Platform",
+    siteName: "阿甘资本",
+    title: "阿甘资本 - Professional FX Trader Training Platform",
     description: "专注于外汇交易的职业交易员培训平台。提供系统化外汇交易培训、实战训练和资金支持。通过专业考核即可获得资金管理权限，分润比例高达90%。",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "FX Killer"
+        alt: "阿甘资本"
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "FX Killer - Professional FX Trader Training Platform",
+    title: "阿甘资本 - Professional FX Trader Training Platform",
     description: "专注于外汇交易的职业交易员培训平台。提供系统化外汇交易培训、实战训练和资金支持。",
     images: ["/og-image.jpg"]
   },
@@ -96,6 +96,35 @@ export default async function PortalLayout({
                   document.documentElement.style.colorScheme = 'light';
                 }
               } catch (e) {}
+              
+              // 移除 Calendly 组件和图标
+              function removeCalendly() {
+                // 移除所有包含 calendly 的元素
+                const calendlyElements = document.querySelectorAll('[class*="calendly"], [id*="calendly"], iframe[src*="calendly"], .calendly-inline-widget, .calendly-popup-button, .calendly-badge-widget');
+                calendlyElements.forEach(el => {
+                  if (el && el.parentNode) {
+                    el.parentNode.removeChild(el);
+                  }
+                });
+                
+                // 移除 calendly 相关的脚本
+                const scripts = document.querySelectorAll('script[src*="calendly"]');
+                scripts.forEach(script => {
+                  if (script && script.parentNode) {
+                    script.parentNode.removeChild(script);
+                  }
+                });
+              }
+              
+              // 立即执行
+              removeCalendly();
+              
+              // 监听 DOM 变化，持续移除
+              const observer = new MutationObserver(removeCalendly);
+              observer.observe(document.body, {
+                childList: true,
+                subtree: true
+              });
             `,
           }}
         />

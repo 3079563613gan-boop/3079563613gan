@@ -19,7 +19,7 @@ const translations: Record<Language, Record<string, string>> = {
   zh: {
     // 品牌名
     'brand.name': '阿甘资本',
-    'brand.full': 'FX Killer',
+    'brand.full': '阿甘资本',
 
     // 导航栏
     'nav.home': '首页',
@@ -172,7 +172,6 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.partners.propfirms': '自营交易公司',
     'footer.partners.tools': '交易工具',
     'footer.partners.copytrading': '跟单平台',
-    'footer.partners.referral': '推荐码',
 
     // Join Us Page
     'joinus.hero.badge': 'PROFESSIONAL TRADER TRAINING',
@@ -290,7 +289,7 @@ const translations: Record<Language, Record<string, string>> = {
     'faq.hero.desc': '开启职业交易之路前，先读懂这些问题',
     'faq.search.placeholder': '搜索问题...',
     'faq.search.button': '搜索',
-    'faq.category.course': '关于 FX Killer',
+    'faq.category.course': '关于 阿甘资本',
     'faq.category.learning': '关于培训',
     'faq.category.pricing': '关于收入与分润',
     'faq.category.support': '交易铁律',
@@ -341,7 +340,7 @@ const translations: Record<Language, Record<string, string>> = {
     'donate.how.step1.title': '完成心理测评',
     'donate.how.step1.desc': '首先完成心理测评，确保您具备成为职业交易员的心理素质',
     'donate.how.step2.title': '发送邮件申请',
-    'donate.how.step2.desc': '邮件至 x.stark.dylan@gmail.com，说明您的意向',
+    'donate.how.step2.desc': '邮件至 3079563613gan@gmail.com，说明您的意向',
     'donate.how.step3.title': '获取捐赠地址',
     'donate.how.step3.desc': '我们将通过邮件回复您具体的 USDT/USDC 捐赠地址',
     'donate.how.step4.title': '完成捐赠并开始培训',
@@ -433,7 +432,7 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.tab.tianti': '天梯',
     'dashboard.tab.config': '策略配置',
     'dashboard.footer.warning': ' 仅用于测试环境。实盘交易需要充分测试和风险评估。',
-    'dashboard.footer.copyright': '2024-2025 © FX Killer 专业外汇交易员培训平台',
+    'dashboard.footer.copyright': '2024-2025 © 阿甘资本 专业外汇交易员培训平台',
 
     // Admin Login
     'login.title': '交易控制台',
@@ -492,13 +491,13 @@ const translations: Record<Language, Record<string, string>> = {
     'blog.backToBlog': '返回博客',
     'blog.relatedPosts': '相关文章',
     'blog.cta.title': '准备开始您的交易之旅？',
-    'blog.cta.subtitle': '加入FX Killer，接受专业的交易员培训',
+    'blog.cta.subtitle': '加入阿甘资本，接受专业的交易员培训',
     'blog.cta.button': '立即加入',
   },
   en: {
     // Brand Name
-    'brand.name': 'FX Killer',
-    'brand.full': 'FX Killer',
+    'brand.name': '阿甘资本',
+    'brand.full': '阿甘资本',
 
     // Navigation
     'nav.home': 'Home',
@@ -518,7 +517,7 @@ const translations: Record<Language, Record<string, string>> = {
     'hero.cta.dashboard': 'Enter Trading System',
 
     // Why Choose Section
-    'why.title': 'Why Choose FX Killer',
+    'why.title': 'Why Choose 阿甘资本',
     'why.subtitle': 'Focused on selecting and cultivating elite forex traders, nurturing those truly suited, retaining the few, and advising the majority to pursue other paths',
 
     // Advantages
@@ -531,7 +530,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Comparison
     'comparison.vs': 'VS Traditional Forex Training',
-    'comparison.fxkiller': 'FX Killer',
+    'comparison.fxkiller': '阿甘资本',
     'comparison.traditional': 'Traditional Training Institutions',
     'comparison.free': 'Completely Free - No Training Fees',
     'comparison.practical': 'Practical Training - 30 Days of Systematic Professional Training',
@@ -643,7 +642,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.contact.focus': 'Focused on forex training',
     'footer.contact.cultivate': 'Cultivating professional forex traders',
     'footer.contact.apply': 'Apply Now',
-    'footer.copyright': '© FX Killer · Professional Forex Trader Training Platform · fxkiller.com',
+    'footer.copyright': '© 阿甘资本 · Professional Forex Trader Training Platform · fxkiller.com',
     'footer.disclaimer': ' Forex trading carries risk, investment requires caution · Site content for learning reference only, not investment advice',
     'footer.partners.title': 'Partners',
     'footer.partners.brokers': 'Partner Brokers',
@@ -651,11 +650,10 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.partners.propfirms': 'Prop Firms',
     'footer.partners.tools': 'Trading Tools',
     'footer.partners.copytrading': 'Copy Trading',
-    'footer.partners.referral': 'Referral Code',
 
     // Join Us Page
     'joinus.hero.badge': 'PROFESSIONAL TRADER TRAINING',
-    'joinus.hero.title1': 'FX Killer',
+    'joinus.hero.title1': '阿甘资本',
     'joinus.hero.title2': 'Forex Trader Training',
     'joinus.hero.subtitle': 'Cultivating those truly suited, retaining the few, advising the majority to pursue other paths',
     'joinus.hero.stat1': 'Pass Rate',
@@ -769,7 +767,7 @@ const translations: Record<Language, Record<string, string>> = {
     'faq.hero.desc': 'Understand these questions before starting your professional trading journey',
     'faq.search.placeholder': 'Search questions...',
     'faq.search.button': 'Search',
-    'faq.category.course': 'About FX Killer',
+    'faq.category.course': 'About 阿甘资本',
     'faq.category.learning': 'About Training',
     'faq.category.pricing': 'About Income & Profit Share',
     'faq.category.support': 'Trading Iron Laws',
@@ -820,7 +818,7 @@ const translations: Record<Language, Record<string, string>> = {
     'donate.how.step1.title': 'Complete Psychology Test',
     'donate.how.step1.desc': 'First complete the psychology test to ensure you possess the psychological qualities to become a professional trader',
     'donate.how.step2.title': 'Send Email Application',
-    'donate.how.step2.desc': 'Email to x.stark.dylan@gmail.com explaining your intention',
+    'donate.how.step2.desc': 'Email to 3079563613gan@gmail.com explaining your intention',
     'donate.how.step3.title': 'Obtain Donation Address',
     'donate.how.step3.desc': 'We will reply via email with the specific USDT/USDC donation address',
     'donate.how.step4.title': 'Complete Donation and Begin Training',
@@ -912,7 +910,7 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.tab.tianti': 'Leaderboard',
     'dashboard.tab.config': 'Strategy Config',
     'dashboard.footer.warning': ' For testing environment only. Live trading requires thorough testing and risk assessment.',
-    'dashboard.footer.copyright': '2024-2025 © FX Killer Professional Forex Trader Training Platform',
+    'dashboard.footer.copyright': '2024-2025 © 阿甘资本 Professional Forex Trader Training Platform',
 
     // Admin Login
     'login.title': 'Trading Dashboard',
@@ -971,7 +969,7 @@ const translations: Record<Language, Record<string, string>> = {
     'blog.backToBlog': 'Back to Blog',
     'blog.relatedPosts': 'Related Posts',
     'blog.cta.title': 'Ready to Start Your Trading Journey?',
-    'blog.cta.subtitle': 'Join FX Killer for professional trader training',
+    'blog.cta.subtitle': 'Join 阿甘资本 for professional trader training',
     'blog.cta.button': 'Join Now',
   }
 };
